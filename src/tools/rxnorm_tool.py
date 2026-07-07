@@ -17,4 +17,9 @@ def extract_drug_ingredients(drug_name: str) -> dict:
     """
     client = RxNormClient()
     info = client.extract_ingredients(drug_name)
-    return info.model_dump()
+    # Return directly since it is already a dict
+    return {
+        "query_name": drug_name,
+        "rxcuis": info.get("rxcuis") or [],
+        "ingredients": info.get("ingredients") or []
+    }

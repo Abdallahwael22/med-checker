@@ -1,6 +1,5 @@
 import requests
 from typing import List
-from src.schemas.drug_data import DrugIngredientInfo
 
 class RxNormClient:
     def __init__(self, base_url: str = "https://rxnav.nlm.nih.gov/REST"):
@@ -62,15 +61,16 @@ class RxNormClient:
                 continue
         return sorted(list(ingredients))
 
-    def extract_ingredients(self, drug_name: str) -> DrugIngredientInfo:
+    def extract_ingredients(self, drug_name: str) -> dict:
         """
         Resolve a drug name to its active ingredients by first resolving product RxCUIs,
         then querying related active ingredient concepts.
+        
+        Returns a dict: {"rxcuis": list[str], "ingredients": list[str]}
         """
         rxcuis = self.get_rxcuis_by_name(drug_name)
         ingredients = self.get_ingredients_by_rxcuis(rxcuis)
-        return DrugIngredientInfo(
-            query_name=drug_name,
-            rxcuis=rxcuis,
-            ingredients=ingredients
-        )
+        return {
+            "rxcuis": rxcuis,
+            "ingredients": ingredients
+        }

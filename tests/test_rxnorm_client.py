@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from src.adapters.rxnorm_client import RxNormClient
-from src.schemas.drug_data import DrugIngredientInfo
 
 def test_rxnorm_client_init():
     client = RxNormClient()
@@ -83,7 +82,6 @@ def test_extract_ingredients():
     client.get_ingredients_by_rxcuis = MagicMock(return_value=["atorvastatin"])
     
     info = client.extract_ingredients("Lipitor")
-    assert isinstance(info, DrugIngredientInfo)
-    assert info.query_name == "Lipitor"
-    assert info.rxcuis == ["617314"]
-    assert info.ingredients == ["atorvastatin"]
+    assert isinstance(info, dict)
+    assert info["rxcuis"] == ["617314"]
+    assert info["ingredients"] == ["atorvastatin"]
