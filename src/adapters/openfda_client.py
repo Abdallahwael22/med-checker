@@ -32,30 +32,68 @@ class OpenFDAClient:
 
     def _get_joined_text(self, label_data: dict, field_name: str) -> Optional[str]:
         """
-        Helper to safely extract field values and join lists into multi-line strings.
+        Helper to safely extract field values, join lists, and normalize carriage returns.
         """
         val = label_data.get(field_name)
         if isinstance(val, list):
-            return "\n".join(val)
+            joined = "\n".join(val)
         elif isinstance(val, str):
-            return val
-        return None
+            joined = val
+        else:
+            return None
+            
+        # Normalize carriage returns to prevent terminal printing issues
+        return joined.replace("\r\n", "\n").replace("\r", "\n")
+
 
     def _parse_label_data(self, label_data: dict) -> OpenFDALabelInfo:
         """
         Parse raw label data dictionary from OpenFDA API into OpenFDALabelInfo.
+        Supports fallbacks for OTC (Over-the-Counter) drugs.
         """
-        # Fallback for warnings and cautions
-        warnings_and_cautions = self._get_joined_text(label_data, "warnings_and_cautions")
-        if not warnings_and_cautions:
-            warnings_and_cautions = self._get_joined_text(label_data, "warnings")
+        # Assemble comprehensive warnings and cautions for OTC/Rx labels
+        warnings_sections = []
+        
+        main_warnings = self._get_joined_text(label_data, "warnings_and_cautions")
+        if not main_warnings:
+            main_warnings = self._get_joined_text(label_data, "warnings")
+        if main_warnings:
+            warnings_sections.append(main_warnings)
+            
+        # Append extra safety warnings if present (typical in OTC labels)
+        for field in ["ask_doctor", "when_using", "stop_use", "precautions", "general_precautions"]:
+            val = self._get_joined_text(label_data, field)
+            if val:
+                # Format nicely with a markdown subheader
+                header = field.replace("_", " ").title()
+                warnings_sections.append(f"### {header}\n{val}")
+                
+        warnings_and_cautions = "\n\n".join(warnings_sections) if warnings_sections else None
+
+        # Fallback for contraindications (OTC drugs use 'do_not_use')
+        contraindications = self._get_joined_text(label_data, "contraindications")
+        if not contraindications:
+            contraindications = self._get_joined_text(label_data, "do_not_use")
+
+        # Fallback for pregnancy (OTC drugs use 'pregnancy_or_breast_feeding')
+        pregnancy = self._get_joined_text(label_data, "pregnancy")
+        if not pregnancy:
+            pregnancy = self._get_joined_text(label_data, "pregnancy_or_breast_feeding")
+
+        # Fallback for drug interactions (OTC drugs use 'ask_doctor_or_pharmacist')
+        drug_interactions = self._get_joined_text(label_data, "drug_interactions")
+        if not drug_interactions:
+            drug_interactions = self._get_joined_text(label_data, "ask_doctor_or_pharmacist")
 
         return OpenFDALabelInfo(
-            contraindications=self._get_joined_text(label_data, "contraindications"),
+            contraindications=contraindications,
             boxed_warning=self._get_joined_text(label_data, "boxed_warning"),
             warnings_and_cautions=warnings_and_cautions,
-            pregnancy=self._get_joined_text(label_data, "pregnancy"),
+            pregnancy=pregnancy,
             supplemental_patient_material=self._get_joined_text(label_data, "supplemental_patient_material"),
-            drug_interactions=self._get_joined_text(label_data, "drug_interactions"),
+            drug_interactions=drug_interactions,
             food_interactions=self._get_joined_text(label_data, "food_interactions")
         )
+
+
+
