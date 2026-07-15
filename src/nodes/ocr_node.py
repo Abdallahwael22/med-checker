@@ -91,10 +91,11 @@ def _attempt_ocr(img: np.ndarray, aggressive: bool) -> tuple[list, float]:
 
 def ocr_node(state: MedCheckerState) -> MedCheckerState:
     confidence = 0.0
+    attempt_errors: list[str] = []
 
     try:
         img = decode_image(state["raw_image"])
-    except Exception:
+    except Exception as e:
         state["ocr"] = OCRSection(
             scanned_drug_name="",
             scanned_dosage="",
@@ -103,32 +104,42 @@ def ocr_node(state: MedCheckerState) -> MedCheckerState:
             ocr_retry_count=0
         )
         state["extracted_drug_name"] = None
+        # Store decode error so the UI can surface it
+        state["ocr_error"] = f"Image decode failed: {e}"
         return state
 
     for attempt in range(settings.ocr_max_retries + 1):
         try:
             raw_result, confidence = _attempt_ocr(img, aggressive=(attempt > 0))
 
-            if confidence >= settings.ocr_confidence_threshold:
-                raw_text = " ".join([
-                    line[1][0] for line in raw_result if line and line[1]
-                ])
-                extracted = extract_fields(raw_text, confidence)
-                state["ocr"] = OCRSection(
-                    scanned_drug_name=extracted.drug_name,
-                    scanned_dosage=f"{extracted.dosage}{extracted.dosage_unit}",
-                    ocr_confidence=confidence,
-                    ocr_needs_review=False,
-                    ocr_retry_count=attempt
+            if confidence < settings.ocr_confidence_threshold:
+                attempt_errors.append(
+                    f"Attempt {attempt}: confidence {confidence:.3f} below threshold "
+                    f"{settings.ocr_confidence_threshold} "
+                    f"({'aggressive' if attempt > 0 else 'basic'} preprocessing)"
                 )
-                state["extracted_drug_name"] = extracted.drug_name
-                return state
-        except Exception:
+                continue
+
+            raw_text = " ".join([
+                line[1][0] for line in raw_result if line and line[1]
+            ])
+            extracted = extract_fields(raw_text, confidence)
+            state["ocr"] = OCRSection(
+                scanned_drug_name=extracted.drug_name,
+                scanned_dosage=f"{extracted.dosage}{extracted.dosage_unit}",
+                ocr_confidence=confidence,
+                ocr_needs_review=False,
+                ocr_retry_count=attempt
+            )
+            state["extracted_drug_name"] = extracted.drug_name
+            return state
+
+        except Exception as e:
+            attempt_errors.append(f"Attempt {attempt} error: {type(e).__name__}: {e}")
             continue
 
-    # All retries exhausted
-    # Only reached if all OCR attempts (including retries) fail to meet the confidence threshold.
-    # Sets the OCR section to indicate failure and that manual review is required.
+    # All retries exhausted — return gracefully with error info in state
+    error_summary = "\n".join(attempt_errors) if attempt_errors else "No attempts succeeded."
     state["ocr"] = OCRSection(
         scanned_drug_name="",
         scanned_dosage="",
@@ -137,4 +148,8 @@ def ocr_node(state: MedCheckerState) -> MedCheckerState:
         ocr_retry_count=settings.ocr_max_retries
     )
     state["extracted_drug_name"] = None
+    state["ocr_error"] = (
+        f"OCR failed after {settings.ocr_max_retries + 1} attempts "
+        f"(threshold={settings.ocr_confidence_threshold}):\n{error_summary}"
+    )
     return state

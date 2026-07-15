@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     langsmith_tracing: bool = False
     langsmith_project: str = "med-checker"
 
-    ocr_confidence_threshold: float = 0.75
+    ocr_confidence_threshold: float = 0.55
     ocr_max_retries: int = 2
 
     low_confidence_routes_to_review: bool = True

@@ -15,6 +15,7 @@ class MedCheckerState(TypedDict):
     patient_id: str                                 # Needed to look up the local JSON profile
     ocr: Optional[OCRSection]                       # OCR structured output
     extracted_drug_name: Optional[str]               # Bridged from OCR for drug_info_node
+    ocr_error: Optional[str]                        # Error message if OCR failed
     
     # --- Phase 2: FDA Data Retrieval ---
     safety_profile: Optional[DrugSafetyProfile]     # The nested dict of ingredients and warnings
