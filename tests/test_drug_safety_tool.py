@@ -1,6 +1,9 @@
+# pyrefly: ignore [missing-import]
 import pytest
 from unittest.mock import patch, MagicMock
+# pyrefly: ignore [missing-import]
 from src.tools.drug_safety_tool import get_drug_safety_info
+# pyrefly: ignore [missing-import]
 from src.schemas.drug_data import OpenFDALabelInfo
 
 @patch("src.adapters.rxnorm_client.RxNormClient.extract_ingredients")
