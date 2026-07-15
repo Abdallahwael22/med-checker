@@ -24,9 +24,24 @@ class RxNormClient:
         response.raise_for_status()
         return response.json()
 
+    def get_approximate_rxcuis(self, drug_name: str) -> List[str]:
+        """
+        Query RxNorm approximateTerm matching for a drug name (fuzzy spelling fallback).
+        """
+        try:
+            response = self.session.get(f"{self.base_url}/approximateTerm.json", params={"term": drug_name, "maxEntries": 10})
+            response.raise_for_status()
+            data = response.json()
+            candidates = data.get("approximateGroup", {}).get("candidate") or []
+            rxcuis = {cand["rxcui"] for cand in candidates if cand.get("rxcui")}
+            return sorted(list(rxcuis))
+        except Exception:
+            return []
+
     def get_rxcuis_by_name(self, drug_name: str) -> List[str]:
         """
         Query NLM RxNorm for a drug name and extract all product RxCUIs found.
+        Falls back to approximate term matching if no direct matches are found.
         """
         try:
             data = self.get_drugs(drug_name)
@@ -37,9 +52,13 @@ class RxNormClient:
                 for prop in group.get("conceptProperties", [])
                 if prop.get("rxcui")
             }
-            return sorted(list(rxcuis))
+            if rxcuis:
+                return sorted(list(rxcuis))
         except Exception:
-            return []
+            pass
+
+        # Fallback to approximate matching for fuzzy search/spelling errors
+        return self.get_approximate_rxcuis(drug_name)
 
     def get_ingredients_by_rxcuis(self, rxcuis: List[str]) -> List[str]:
         """
