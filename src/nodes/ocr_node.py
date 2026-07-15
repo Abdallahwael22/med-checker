@@ -35,20 +35,15 @@ def get_extractor():
 def compute_confidence(raw_result: list) -> float:
     """
     Aggregate OCR confidence across all detected text regions.
-    Uses minimum — weakest region determines overall reliability.
+    Uses average (mean) of all regions to represent overall reliability.
     Returns 0.0 if no text was detected.
     """
-    # The problem this function solves:
-    # - The OCR engine returns a list of text regions with their confidence scores.
-    # - We need to aggregate the confidence scores to get a single confidence score for the entire image.
-    # - We use the minimum confidence score as the overall confidence score.
-    # - This is because the weakest region determines the overall reliability of the OCR results.
     if not raw_result:
         return 0.0
     scores = [line[1][1] for line in raw_result if line and line[1]]
     if not scores:
         return 0.0
-    return min(scores)
+    return sum(scores) / len(scores)
 
 
 def extract_fields(raw_text: str, confidence: float) -> ExtractedLabel:
@@ -75,18 +70,7 @@ Label text:
     return get_extractor().invoke(prompt)
 
 
-def _attempt_ocr(img: np.ndarray, aggressive: bool) -> tuple[list, float]:
-    """Run one OCR attempt. Returns (raw_result, confidence)."""
-    # The problem this function solves:
-    # - We need to run OCR on the image.
-    # - We use the aggressive or basic preprocessing functions to preprocess the image.
-    # - We use the deskew function to deskew the image.
-    # - We use the run_paddleocr function to run OCR on the image.
-    # - We return the raw results and the confidence score.
-    processed = aggressive_preprocess(img) if aggressive else basic_preprocess(img)
-    processed = deskew(processed)
-    raw = run_paddleocr(processed)
-    return raw, compute_confidence(raw)
+
 
 
 def ocr_node(state: MedCheckerState) -> MedCheckerState:
@@ -110,19 +94,47 @@ def ocr_node(state: MedCheckerState) -> MedCheckerState:
 
     for attempt in range(settings.ocr_max_retries + 1):
         try:
-            raw_result, confidence = _attempt_ocr(img, aggressive=(attempt > 0))
+            if attempt == 0:
+                prep_desc = "raw color image"
+                processed = img
+            elif attempt == 1:
+                prep_desc = "basic preprocessing (grayscale + equalize + sharpen + deskew)"
+                processed = basic_preprocess(img)
+                processed = deskew(processed)
+            else:
+                prep_desc = "aggressive preprocessing (denoise + Otsu threshold + deskew)"
+                processed = aggressive_preprocess(img)
+                processed = deskew(processed)
+
+            raw_result = run_paddleocr(processed)
+            confidence = compute_confidence(raw_result)
+
+            # Reconstruct raw text
+            raw_text = " ".join([
+                line[1][0] for line in raw_result if line and line[1]
+            ])
+
+            # Debug printing to see exactly what PaddleOCR found
+            print("\n" + "-"*50)
+            print(f"[OCR DEBUG] Attempt {attempt} ({prep_desc})")
+            print(f"  Combined Raw Text: '{raw_text}'")
+            print(f"  Calculated Average Confidence: {confidence:.4f}")
+            if raw_result:
+                min_c = min([line[1][1] for line in raw_result if line and line[1]])
+                print(f"  Minimum Box Confidence:        {min_c:.4f}")
+                print("  Individual detected text lines:")
+                for line in raw_result:
+                    if line and line[1]:
+                        print(f"    - '{line[1][0]}' (conf: {line[1][1]:.4f})")
+            print("-"*50 + "\n")
 
             if confidence < settings.ocr_confidence_threshold:
                 attempt_errors.append(
                     f"Attempt {attempt}: confidence {confidence:.3f} below threshold "
-                    f"{settings.ocr_confidence_threshold} "
-                    f"({'aggressive' if attempt > 0 else 'basic'} preprocessing)"
+                    f"{settings.ocr_confidence_threshold} ({prep_desc})"
                 )
                 continue
 
-            raw_text = " ".join([
-                line[1][0] for line in raw_result if line and line[1]
-            ])
             extracted = extract_fields(raw_text, confidence)
             state["ocr"] = OCRSection(
                 scanned_drug_name=extracted.drug_name,
@@ -135,6 +147,7 @@ def ocr_node(state: MedCheckerState) -> MedCheckerState:
             return state
 
         except Exception as e:
+            print(f"[OCR ERROR] Attempt {attempt} failed with exception: {type(e).__name__}: {e}")
             attempt_errors.append(f"Attempt {attempt} error: {type(e).__name__}: {e}")
             continue
 
