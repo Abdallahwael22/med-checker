@@ -1,0 +1,26 @@
+{
+    "PATIENT-003": {
+        "metadata": {
+            "name": "Alice Johnson",
+            "age": 72,
+            "gender": "Female",
+            "last_updated": "2026-07-07"
+        },
+        "diseases": [
+            "Atrial Fibrillation",
+            "Chronic Osteoarthritis"
+        ],
+        "allergies": [
+            "NSAIDs"
+        ],
+        "current_medications": [
+            "Coumadin",
+            "Tylenol"
+        ],
+        "active_ingredients": [
+            "warpfarinter",
+            "warfarin",
+            "acetaminophen"
+        ]
+    }
+}
