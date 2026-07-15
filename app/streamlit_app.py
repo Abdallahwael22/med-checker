@@ -467,6 +467,10 @@ with col_results:
 
 # ── Pipeline execution ────────────────────────────────────────────────────────
 if run_btn and uploaded_file and selected_id:
+    print("\n" + "="*80)
+    print(f"[PIPELINE STARTED] Patient ID: {selected_id}")
+    print("="*80 + "\n")
+
     # Read bytes from cache (uploaded_file pointer may be exhausted by the preview)
     image_bytes = st.session_state.get("_cached_image_bytes") or b""
     if not image_bytes:
@@ -528,6 +532,26 @@ if run_btn and uploaded_file and selected_id:
 
         for step in graph.stream(initial_state, stream_mode="updates"):
             for node_name, node_output in step.items():
+                print(f"\n[NODE COMPLETED]: '{node_name}'")
+                if isinstance(node_output, dict):
+                    if "ocr" in node_output and node_output["ocr"]:
+                        ocr_data = node_output["ocr"]
+                        print(f"  -> Extracted Drug: {ocr_data.scanned_drug_name or 'None'}, Dosage: {ocr_data.scanned_dosage or 'None'}, Confidence: {ocr_data.ocr_confidence:.4f}")
+                    if "safety_profile" in node_output:
+                        prof = node_output["safety_profile"]
+                        if prof:
+                            print(f"  -> FDA Drug Found: {prof.query_name}, Ingredients: {prof.ingredients}")
+                        else:
+                            print(f"  -> FDA Drug Found: None")
+                    if "matched_risk_context" in node_output:
+                        print(f"  -> Patient profile matched with FDA warnings context compiled.")
+                    if "reasoning_verdict" in node_output and node_output["reasoning_verdict"]:
+                        verdict = node_output["reasoning_verdict"]
+                        print(f"  -> Reasoning Decision: {verdict.decision}, Risk Interactions Found: {len(verdict.detected_matches or [])}")
+                    if "audit_verdict" in node_output and node_output["audit_verdict"]:
+                        audit = node_output["audit_verdict"]
+                        print(f"  -> Audit Score: {audit.accuracy_score:.2f}, Emergency Level: {audit.emergency_level}/10")
+
                 phase_key = NODE_TO_PHASE.get(node_name)
 
                 if phase_key and phase_key in phase_order:
@@ -554,6 +578,16 @@ if run_btn and uploaded_file and selected_id:
         if final_state.get("ocr"):
             st.session_state["ocr_result"] = final_state["ocr"]
         st.session_state["final_state"] = final_state
+
+        # Debug: Print the entire serialized final state to the terminal console
+        try:
+            serialized = serialize_state(final_state)
+            print("\n" + "="*80)
+            print("[FINAL PIPELINE STATE]")
+            print(json.dumps(serialized, indent=2))
+            print("="*80 + "\n")
+        except Exception as e:
+            print(f"\n[DEBUG] Error serializing state for debug print: {e}\n")
 
         progress_bar.progress(1.0, text="✅ Analysis complete!")
         time.sleep(0.6)
