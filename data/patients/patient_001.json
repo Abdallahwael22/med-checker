@@ -1,0 +1,8 @@
+{
+    "patient_id": "patient_001",
+    "name": "Ahmed",
+    "age": 35,
+    "medications": ["lisinopril 10mg", "ibuprofen 400mg"],
+    "conditions": ["hypertension"],
+    "allergies": ["penicillin"]
+  }

@@ -1,4 +1,12 @@
 from pydantic import BaseModel, Field
+from enum import Enum
+
+
+class ConfidenceLevel(str, Enum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
 
 class ReasoningOutput(BaseModel):
     decision: str = Field(description="Must be exactly 'APPROVE', 'DENY', or 'HOLD_FOR_REVIEW'")

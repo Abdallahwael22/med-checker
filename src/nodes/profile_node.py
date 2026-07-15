@@ -4,7 +4,6 @@ from src.state import MedCheckerState
 def profile_sync_and_match_node(state: MedCheckerState) -> dict:
     patient_id = state["patient_id"]
     fda_profile = state["safety_profile"]
-\\
         
     # 1. Load the localized user profile database
     with open("data/patients/patient_profiles.json", "r") as f:
