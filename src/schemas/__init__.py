@@ -1,16 +1,16 @@
 from src.schemas.extraction import ExtractedLabel
-from src.schemas.drug_data import OpenFDAResult
+from src.schemas.drug_data import OpenFDALabelInfo, DrugSafetyProfile
 from src.schemas.patient import PatientProfile
-from src.schemas.verdict import ReasoningVerdict, ConfidenceLevel
-from src.schemas.state_sections import OCRSection, AgentSection, ReasoningSection
+from src.schemas.verdict import ReasoningOutput, ClinicalAuditOutput, ConfidenceLevel
+from src.schemas.state_sections import OCRSection
 
 __all__ = [
     "ExtractedLabel",
-    "OpenFDAResult",
+    "OpenFDALabelInfo",
+    "DrugSafetyProfile",
     "PatientProfile",
-    "ReasoningVerdict",
+    "ReasoningOutput",
+    "ClinicalAuditOutput",
     "ConfidenceLevel",
     "OCRSection",
-    "AgentSection",
-    "ReasoningSection",
 ]

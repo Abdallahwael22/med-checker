@@ -102,6 +102,7 @@ def ocr_node(state: MedCheckerState) -> MedCheckerState:
             ocr_needs_review=True,
             ocr_retry_count=0
         )
+        state["extracted_drug_name"] = None
         return state
 
     for attempt in range(settings.ocr_max_retries + 1):
@@ -120,6 +121,7 @@ def ocr_node(state: MedCheckerState) -> MedCheckerState:
                     ocr_needs_review=False,
                     ocr_retry_count=attempt
                 )
+                state["extracted_drug_name"] = extracted.drug_name
                 return state
         except Exception:
             continue
@@ -134,4 +136,5 @@ def ocr_node(state: MedCheckerState) -> MedCheckerState:
         ocr_needs_review=True,
         ocr_retry_count=settings.ocr_max_retries
     )
+    state["extracted_drug_name"] = None
     return state
