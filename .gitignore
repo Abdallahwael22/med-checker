@@ -1,3 +1,6 @@
+# Samples
+data/samples/
+
 .env
 __pycache__/
 *.pyc
