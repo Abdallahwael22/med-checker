@@ -32,23 +32,39 @@ def get_extractor():
     return _extractor
 
 
+# def compute_confidence(raw_result: list) -> float:
+#     """
+#     Aggregate OCR confidence across all detected text regions.
+#     Uses minimum — weakest region determines overall reliability.
+#     Returns 0.0 if no text was detected.
+#     """
+#     # The problem this function solves:
+#     # - The OCR engine returns a list of text regions with their confidence scores.
+#     # - We need to aggregate the confidence scores to get a single confidence score for the entire image.
+#     # - We use the minimum confidence score as the overall confidence score.
+#     # - This is because the weakest region determines the overall reliability of the OCR results.
+#     if not raw_result:
+#         return 0.0
+#     scores = [line[1][1] for line in raw_result if line and line[1]]
+#     if not scores:
+#         return 0.0
+#     return min(scores)
+
 def compute_confidence(raw_result: list) -> float:
-    """
-    Aggregate OCR confidence across all detected text regions.
-    Uses minimum — weakest region determines overall reliability.
-    Returns 0.0 if no text was detected.
-    """
-    # The problem this function solves:
-    # - The OCR engine returns a list of text regions with their confidence scores.
-    # - We need to aggregate the confidence scores to get a single confidence score for the entire image.
-    # - We use the minimum confidence score as the overall confidence score.
-    # - This is because the weakest region determines the overall reliability of the OCR results.
     if not raw_result:
         return 0.0
-    scores = [line[1][1] for line in raw_result if line and line[1]]
+    scores = [
+        line[1][1] for line in raw_result
+        if line and line[1]
+        and len(line[1][0].strip()) > 3
+        and line[1][1] > 0.0
+    ]
     if not scores:
         return 0.0
-    return min(scores)
+    # Use average of top 70% scores — ignores outlier low scores
+    scores.sort(reverse=True)
+    top_scores = scores[:max(1, int(len(scores) * 0.7))]
+    return sum(top_scores) / len(top_scores)
 
 
 def extract_fields(raw_text: str, confidence: float) -> ExtractedLabel:
@@ -75,16 +91,32 @@ Label text:
     return get_extractor().invoke(prompt)
 
 
+# def _attempt_ocr(img: np.ndarray, aggressive: bool) -> tuple[list, float]:
+#     """Run one OCR attempt. Returns (raw_result, confidence)."""
+#     # The problem this function solves:
+#     # - We need to run OCR on the image.
+#     # - We use the aggressive or basic preprocessing functions to preprocess the image.
+#     # - We use the deskew function to deskew the image.
+#     # - We use the run_paddleocr function to run OCR on the image.
+#     # - We return the raw results and the confidence score.
+#     processed = aggressive_preprocess(img) if aggressive else basic_preprocess(img)
+#     processed = deskew(processed)
+#     raw = run_paddleocr(processed)
+#     return raw, compute_confidence(raw)
+
 def _attempt_ocr(img: np.ndarray, aggressive: bool) -> tuple[list, float]:
-    """Run one OCR attempt. Returns (raw_result, confidence)."""
-    # The problem this function solves:
-    # - We need to run OCR on the image.
-    # - We use the aggressive or basic preprocessing functions to preprocess the image.
-    # - We use the deskew function to deskew the image.
-    # - We use the run_paddleocr function to run OCR on the image.
-    # - We return the raw results and the confidence score.
-    processed = aggressive_preprocess(img) if aggressive else basic_preprocess(img)
-    processed = deskew(processed)
+    """
+    PaddleOCR 3.x handles preprocessing internally.
+    We only apply aggressive preprocessing as a last resort on retry.
+    """
+    if aggressive:
+        # Last resort — apply manual preprocessing
+        processed = aggressive_preprocess(img)
+        processed = deskew(processed)
+    else:
+        # First attempt — pass original color image directly
+        processed = img
+
     raw = run_paddleocr(processed)
     return raw, compute_confidence(raw)
 

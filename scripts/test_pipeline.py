@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.graph import graph
 
-IMAGE_PATH = r"C:\Users\tarek\Downloads\WhatsApp Image 2026-07-15 at 2.48.35 PM.jpeg"
+IMAGE_PATH = r"data/samples/ibuprofen_clean.jpg"
 PATIENT_ID = "PATIENT-003"
 
 def main():
