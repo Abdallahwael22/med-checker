@@ -1,6 +1,43 @@
+# Samples
+data/samples/
+
 .env
 __pycache__/
 *.pyc
 .venv/
 *.egg-info/
 .langgraph_cache/
+data/samples/
+
+# Python
+*.pyo
+*.pyd
+.Python
+*.so
+
+# uv
+.uv/
+
+# PaddleOCR model cache
+inference/
+*.tar
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Scripts output
+scripts/__pycache__/
