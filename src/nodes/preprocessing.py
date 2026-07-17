@@ -64,20 +64,22 @@ def deskew(img: np.ndarray) -> np.ndarray:
     Correct image rotation if the label is tilted.
     Works on both color and grayscale images.
     """
-    # The problem this function solves:
-    # - The image may be tilted or skewed, which can affect the OCR results.
-    # - This function corrects the image rotation to ensure the text is upright.
-    
     # Work on grayscale for coordinate detection
     if len(img.shape) == 3:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     else:
-        gray = img
+        gray = img.copy()
 
-    # Step A — Find all bright pixels
-    # Collects the coordinates of every non-black pixel. Text pixels are bright, 
-    # so this gives us the locations of all text in the image.
-    coords = np.column_stack(np.where(gray > 0))
+    # Invert image if background is light (i.e. mean pixel value is > 127)
+    # so that text becomes bright (high value) and background becomes black (0).
+    if np.mean(gray) > 127:
+        gray = cv2.bitwise_not(gray)
+
+    # Threshold to isolate text foreground from background noise
+    _, gray_thresh = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY)
+
+    # Step A — Find all bright pixels (which are now text foreground pixels)
+    coords = np.column_stack(np.where(gray_thresh > 0))
     if len(coords) < 5:
         return img  # not enough points to compute angle
 
@@ -89,6 +91,11 @@ def deskew(img: np.ndarray) -> np.ndarray:
         angle = -(90 + angle)
     else:
         angle = -angle
+
+    # Only apply rotation if there is a significant skew to avoid rotating
+    # perfectly aligned images by a small fraction of a degree.
+    if abs(angle) < 1.0 or abs(angle) > 89.0:
+        return img
 
     (h, w) = img.shape[:2]
 
