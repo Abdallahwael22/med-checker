@@ -35,15 +35,24 @@ def get_extractor():
 def compute_confidence(raw_result: list) -> float:
     """
     Aggregate OCR confidence across all detected text regions.
-    Uses average (mean) of all regions to represent overall reliability.
+    Uses average of the top 70% scores, ignoring outlier low scores
+    and noisy/short text lines (length <= 3) to represent overall reliability.
     Returns 0.0 if no text was detected.
     """
     if not raw_result:
         return 0.0
-    scores = [line[1][1] for line in raw_result if line and line[1]]
+    scores = [
+        line[1][1] for line in raw_result
+        if line and line[1]
+        and len(line[1][0].strip()) > 3
+        and line[1][1] > 0.0
+    ]
     if not scores:
         return 0.0
-    return sum(scores) / len(scores)
+    # Use average of top 70% scores — ignores outlier low scores
+    scores.sort(reverse=True)
+    top_scores = scores[:max(1, int(len(scores) * 0.7))]
+    return sum(top_scores) / len(top_scores)
 
 
 def extract_fields(raw_text: str, confidence: float) -> ExtractedLabel:
@@ -68,8 +77,6 @@ Label text:
 {raw_text}
 """
     return get_extractor().invoke(prompt)
-
-
 
 
 
