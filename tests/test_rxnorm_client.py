@@ -78,6 +78,8 @@ def test_get_ingredients_by_rxcuis():
 
 def test_extract_ingredients():
     client = RxNormClient()
+    client.get_direct_rxcui = MagicMock(return_value=None)
+    client.get_approximate_rxcuis = MagicMock(return_value=[])
     client.get_rxcuis_by_name = MagicMock(return_value=["617314"])
     client.get_ingredients_by_rxcuis = MagicMock(return_value=["atorvastatin"])
     
@@ -85,3 +87,15 @@ def test_extract_ingredients():
     assert isinstance(info, dict)
     assert info["rxcuis"] == ["617314"]
     assert info["ingredients"] == ["atorvastatin"]
+
+def test_extract_ingredients_direct_ingredient():
+    client = RxNormClient()
+    client.get_direct_rxcui = MagicMock(return_value="11248")
+    client.get_concept_properties = MagicMock(return_value={"name": "vitamin B12", "tty": "IN"})
+    
+    info = client.extract_ingredients("cyanocobalamin")
+    assert info == {
+        "rxcuis": ["11248"],
+        "ingredients": ["vitamin b12"]
+    }
+
