@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Virtual environment — never copy into Docker
+.venv/
+
+# Environment secrets — injected at runtime
+.env
+
+# Git
+.git/
+.gitignore
+
+# Tests — not needed in production image
+tests/
+scripts/
+
+# Sample images — not needed in production
+data/samples/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# PaddleOCR cache — models are downloaded inside the image
+inference/
+*.tar
+
+# uv lock (not needed inside container)
+uv.lock
