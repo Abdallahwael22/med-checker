@@ -2,10 +2,17 @@
 from langchain_groq import ChatGroq
 from src.state import MedCheckerState
 from src.schemas.verdict import ClinicalAuditOutput
+from src.config import settings
 
 def safety_audit_node(state: MedCheckerState) -> dict:
     # Use a medical-preference prompt strategy or a specifically tuned model configuration
-    llm = ChatGroq(model="qwen/qwen3-32b", temperature=0.1)
+    # llm = ChatGroq(model="qwen/qwen3-32b", temperature=0.1)
+    llm = ChatGroq(
+        model=settings.groq_model,
+        api_key=settings.groq_api_key, 
+        temperature=0.1
+        )
+
     structured_auditor = llm.with_structured_output(ClinicalAuditOutput)
     
     reasoning_data = state["reasoning_verdict"]

@@ -1,0 +1,35 @@
+services:
+  med-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # ── Container name ───────────────────────────────────────
+    container_name: med-checker-app
+
+    # ── Port mapping ─────────────────────────────────────────
+    # host:container — access at http://localhost:8501
+    ports:
+      - "8501:8501"
+
+    # ── Environment variables ─────────────────────────────────
+    # Reads from your .env file automatically
+    env_file:
+      - .env
+
+    # ── Volumes ───────────────────────────────────────────────
+    # Mount patient data so you can update it without rebuilding
+    volumes:
+      - ./data/patients:/app/data/patients
+
+    # ── Restart policy ────────────────────────────────────────
+    restart: unless-stopped
+
+    # ── Resource limits ───────────────────────────────────────
+    # PaddleOCR is memory-hungry — give it enough
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G

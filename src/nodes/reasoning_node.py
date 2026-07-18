@@ -2,10 +2,16 @@
 from langchain_groq import ChatGroq
 from src.state import MedCheckerState
 from src.schemas.verdict import ReasoningOutput
+from src.config import settings
 
 def clinical_reasoning_node(state: MedCheckerState) -> dict:
     # Initialize your model (using Groq for rapid structural extraction)
-    llm = ChatGroq(model="qwen/qwen3-32b", temperature=0.0)
+    # llm = ChatGroq(model="qwen/qwen3-32b", temperature=0.0)
+    llm = ChatGroq(
+        model=settings.groq_model,
+        api_key=settings.groq_api_key, 
+        temperature=0.0
+        )
     structured_llm = llm.with_structured_output(ReasoningOutput)
     
     system_prompt = (
