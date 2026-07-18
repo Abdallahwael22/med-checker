@@ -75,6 +75,57 @@ Open **`http://localhost:8501`** in your browser.
 
 ---
 
+## 🐳 Running with Docker
+
+Docker is the easiest way to run MedChecker AI — no Python, no uv, no dependency issues. Just Docker Desktop.
+
+### Prerequisites
+
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+
+### 1. Configure Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+GROQ_API_KEY="your-groq-api-key-here"
+```
+
+### 2. Build the Image
+
+```bash
+docker compose build
+```
+
+> ℹ️ **First Build Warning**: The build downloads PaddleOCR models (~200MB) and all Python dependencies. This takes 5–10 minutes on first run. Subsequent builds are fast thanks to Docker layer caching.
+
+### 3. Run the Container
+
+```bash
+docker compose up -d
+```
+
+Open **`http://localhost:8501`** in your browser.
+
+### 4. Stop the Container
+
+```bash
+docker compose down
+```
+
+### Useful Docker Commands
+
+| Command | What it does |
+|---|---|
+| `docker compose build` | Build the image |
+| `docker compose up -d` | Start in background |
+| `docker compose down` | Stop and remove container |
+| `docker compose logs -f` | View live logs |
+| `docker compose ps` | Check container status |
+| `docker compose build --no-cache` | Force full rebuild |
+
+---
+
 ## 🧑‍⚕️ How to Use the UI
 
 1. **Sidebar Patient Select**: Choose a patient ID (e.g. `PATIENT-003`) from the dropdown. The sidebar will render their medical card showing active chronic conditions, known drug allergies, and current medication list.
